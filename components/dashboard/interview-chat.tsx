@@ -104,7 +104,7 @@ export function InterviewChat({ sessionId, role, experienceLevel, userName, resu
       // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      
+
       if (!token) {
         throw new Error('No authentication token found. Please log in again.');
       }
@@ -178,7 +178,7 @@ export function InterviewChat({ sessionId, role, experienceLevel, userName, resu
     const remainingSeconds = Math.max(0, 1200 - totalSeconds); // 20 minutes = 1200 seconds
     const minutes = Math.floor(remainingSeconds / 60);
     const seconds = remainingSeconds % 60;
-    
+
     // Show warning when less than 5 minutes remaining
     if (remainingSeconds <= 300 && remainingSeconds > 0) {
       toast({
@@ -187,7 +187,7 @@ export function InterviewChat({ sessionId, role, experienceLevel, userName, resu
         variant: "destructive"
       });
     }
-    
+
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
@@ -279,14 +279,15 @@ export function InterviewChat({ sessionId, role, experienceLevel, userName, resu
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your response here..."
-                className="min-h-[60px] max-h-[120px] resize-none"
+                className="chat-textarea h-10 resize-none px-4 py-2 leading-[48px] text-sm"
                 disabled={isLoading}
               />
               <div className="flex gap-2 items-end">
                 <Button
                   onClick={sendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="h-[60px] px-4"
+                  variant="default"
+                  className="h-10 w-10 px-2"
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -297,7 +298,7 @@ export function InterviewChat({ sessionId, role, experienceLevel, userName, resu
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-[60px]"
+                  className="h-10 w-10"
                   disabled={isLoading}
                 >
                   <Mic className="w-4 h-4" />

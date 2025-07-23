@@ -36,7 +36,7 @@ export default function CreateResumePage() {
               <p className="text-muted-foreground">
                 Our resume builder will help you create professional, ATS-friendly resumes tailored to your target roles.
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
@@ -47,7 +47,7 @@ export default function CreateResumePage() {
                     Smart suggestions and content optimization
                   </p>
                 </div>
-                
+
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                     <Target className="w-6 h-6 text-green-600" />
@@ -57,7 +57,7 @@ export default function CreateResumePage() {
                     Optimized for applicant tracking systems
                   </p>
                 </div>
-                
+
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
                     <Plus className="w-6 h-6 text-purple-600" />
@@ -69,10 +69,10 @@ export default function CreateResumePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="pt-4">
               <Badge variant="secondary" className="text-sm">
-                Expected Release: Q1 2024
+                Expected Release: Q4 2025
               </Badge>
             </div>
           </CardContent>
@@ -80,4 +80,4 @@ export default function CreateResumePage() {
       </div>
     </DashboardLayout>
   );
-} 
+}
