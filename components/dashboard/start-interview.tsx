@@ -153,7 +153,8 @@ export function StartInterview() {
           experienceLevel: selectedLevel,
           responseFormat: selectedMode === 'text' ? 'mixed' : 'mixed', // For now, always mixed
           resumeText: resumeText || undefined,
-          jobDescriptionText: jdText || undefined
+          jobDescriptionText: jdText || undefined,
+          mode: selectedMode || 'chat', // <-- send mode
         }),
       });
 

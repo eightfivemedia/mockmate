@@ -19,79 +19,53 @@ import {
   BarChart3
 } from 'lucide-react';
 import { useState } from 'react';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { useUserInterviews } from '@/hooks/use-user-interviews';
 
 export function PastSessions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
+  const { profile: user, loading: userLoading } = useUserProfile();
+  const { sessions, loading: sessionsLoading } = useUserInterviews(user?.id || null);
 
-  const sessions = [
-    {
-      id: 1,
-      title: 'Frontend Developer Interview',
-      date: '2024-01-15',
-      duration: '35 min',
-      score: 8.5,
-      type: 'Technical',
-      level: 'Mid Level',
-      questionsAnswered: 12,
-      status: 'completed'
-    },
-    {
-      id: 2,
-      title: 'Product Manager Interview',
-      date: '2024-01-12',
-      duration: '42 min',
-      score: 7.8,
-      type: 'Behavioral',
-      level: 'Senior Level',
-      questionsAnswered: 10,
-      status: 'completed'
-    },
-    {
-      id: 3,
-      title: 'Data Scientist Interview',
-      date: '2024-01-10',
-      duration: '38 min',
-      score: 9.2,
-      type: 'Technical',
-      level: 'Mid Level',
-      questionsAnswered: 11,
-      status: 'completed'
-    },
-    {
-      id: 4,
-      title: 'Full Stack Developer Interview',
-      date: '2024-01-08',
-      duration: '45 min',
-      score: 8.0,
-      type: 'Mixed',
-      level: 'Mid Level',
-      questionsAnswered: 14,
-      status: 'completed'
-    },
-    {
-      id: 5,
-      title: 'UI/UX Designer Interview',
-      date: '2024-01-05',
-      duration: '32 min',
-      score: 8.7,
-      type: 'Portfolio',
-      level: 'Mid Level',
-      questionsAnswered: 9,
-      status: 'completed'
-    }
-  ];
+  // Map sessions to UI-friendly format
+  const mappedSessions = sessions.map((session) => ({
+    id: session.id,
+    title: session.title || 'Untitled Interview',
+    date: session.created_at,
+    duration: session.duration_minutes ? `${session.duration_minutes} min` : 'N/A',
+    score: session.score ?? 0,
+    type: session.type ? session.type.charAt(0).toUpperCase() + session.type.slice(1) : 'Unknown',
+    level: 'N/A',
+    questionsAnswered: session.questions_answered ?? 0,
+    status: session.completed_at ? 'completed' : 'in progress',
+    mode: session.mode || 'chat', // <-- add mode
+  }));
 
-  const filteredSessions = sessions.filter(session => {
+  const filteredSessions = mappedSessions.filter(session => {
     const matchesSearch = session.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          session.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterBy === 'all' || session.type.toLowerCase() === filterBy.toLowerCase();
     return matchesSearch && matchesFilter;
   });
 
-  const averageScore = sessions.reduce((sum, session) => sum + session.score, 0) / sessions.length;
-  const totalSessions = sessions.length;
-  const totalTime = sessions.reduce((sum, session) => sum + parseInt(session.duration), 0);
+  const averageScore = mappedSessions.length > 0 ? mappedSessions.reduce((sum, session) => sum + session.score, 0) / mappedSessions.length : 0;
+  const totalSessions = mappedSessions.length;
+  const totalTime = mappedSessions.reduce((sum, session) => {
+    const min = parseInt(session.duration);
+    return sum + (isNaN(min) ? 0 : min);
+  }, 0);
+
+  const sortedSessions = mappedSessions.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const firstScore = sortedSessions[0]?.score ?? 0;
+  const lastScore = sortedSessions[sortedSessions.length - 1]?.score ?? 0;
+  const improvement = (sortedSessions.length > 1 && firstScore !== 0)
+    ? ((lastScore - firstScore) / Math.abs(firstScore)) * 100
+    : 0;
+
+  if (userLoading || sessionsLoading) {
+    return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
+  }
 
   return (
     <div className="space-y-8">
@@ -154,7 +128,9 @@ export function PastSessions() {
             <TrendingUp className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12%</div>
+            <div className="text-2xl font-bold">
+              {improvement >= 0 ? '+' : ''}{improvement.toFixed(0)}%
+            </div>
             <p className="text-xs text-muted-foreground">
               Score improvement
             </p>
@@ -210,6 +186,9 @@ export function PastSessions() {
                     <h3 className="text-lg font-semibold">{session.title}</h3>
                     <Badge variant="outline">{session.type}</Badge>
                     <Badge variant="secondary">{session.level}</Badge>
+                    <Badge variant={session.mode === 'questions' ? 'default' : 'outline'} className="capitalize">
+                      {session.mode === 'questions' ? 'Questions Mode' : 'Chat Mode'}
+                    </Badge>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">

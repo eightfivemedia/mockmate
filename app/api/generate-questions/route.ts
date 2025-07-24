@@ -20,6 +20,7 @@ interface GenerateQuestionsRequest {
   resumeText?: string;
   jobDescriptionText?: string;
   responseFormat: 'technical' | 'behavioral' | 'mixed';
+  mode?: 'chat' | 'questions'; // <-- add this
 }
 
 interface Question {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: GenerateQuestionsRequest = await request.json();
-    const { role, experienceLevel, resumeText, jobDescriptionText, responseFormat } = body;
+    const { role, experienceLevel, resumeText, jobDescriptionText, responseFormat, mode } = body;
 
     // Validate required fields
     if (!role || !experienceLevel || !responseFormat) {
@@ -79,7 +80,8 @@ export async function POST(request: NextRequest) {
         job_description_file_path: jobDescriptionText ? 'jd_uploaded' : null,
         resume_text: resumeText || null,
         job_description_text: jobDescriptionText || null,
-        questions_answered: 0
+        questions_answered: 0,
+        mode: mode || 'chat', // <-- store mode
       })
       .select()
       .single();

@@ -14,6 +14,8 @@ interface InterviewSession {
   questions_answered?: number
   created_at: string
   completed_at?: string
+  mode?: string; // <-- Added for session mode
+  experience_level?: string; // <-- Add this
 }
 
 interface UseUserInterviewsState {
@@ -29,7 +31,7 @@ export function useUserInterviews(userId: string | null) {
     error: null,
   })
 
-  const fetchUserInterviews = useCallback(async () => {
+  const fetchUserInterviews = useCallback(async (showToast = false) => {
     if (!userId) {
       setState({
         sessions: [],
@@ -53,7 +55,9 @@ export function useUserInterviews(userId: string | null) {
           duration_minutes,
           questions_answered,
           created_at,
-          completed_at
+          completed_at,
+          mode,
+          experience_level
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -69,8 +73,8 @@ export function useUserInterviews(userId: string | null) {
         error: null,
       })
 
-      // Show success toast if interviews were loaded
-      if (data && data.length > 0) {
+      // Show success toast only if requested
+      if (showToast && data && data.length > 0) {
         toast.success(`Loaded ${data.length} interview sessions`)
       }
     } catch (error) {
@@ -81,19 +85,17 @@ export function useUserInterviews(userId: string | null) {
         loading: false,
         error: errorMessage,
       })
-      
-      // Show error toast
       toast.error(`Failed to load interviews: ${errorMessage}`)
     }
   }, [userId])
 
   useEffect(() => {
-    fetchUserInterviews()
+    fetchUserInterviews(false)
   }, [fetchUserInterviews])
 
   // Helper function to refresh interviews
   const refreshInterviews = useCallback(() => {
-    fetchUserInterviews()
+    fetchUserInterviews(true)
   }, [fetchUserInterviews])
 
   // Helper function to add a new interview session
