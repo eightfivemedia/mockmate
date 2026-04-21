@@ -639,8 +639,8 @@ export function LandingPage() {
 
         {/* ── HERO ── */}
         <section
-          className={`flex px-5 pb-10 ${isLandscapeTablet ? 'flex-row items-center gap-8' : 'flex-col'}`}
-          style={{ paddingTop: isLandscapeTablet ? '72px' : '96px', background: '#0a1123' }}
+          className={`flex px-5 pb-10 ${isLandscapeTablet ? 'flex-row items-center gap-8' : 'flex-col justify-between'}`}
+          style={{ minHeight: '100svh', paddingTop: isLandscapeTablet ? '72px' : '96px', background: '#0a1123' }}
         >
           {/* Text + CTAs */}
           <div className={`flex flex-col ${isLandscapeTablet ? 'flex-1 items-start text-left' : 'items-center text-center'}`}>
