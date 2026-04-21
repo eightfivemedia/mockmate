@@ -61,7 +61,6 @@ export function useUserInterviews(userId: string | null) {
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(5)
 
       if (error) {
         throw new Error(`Failed to fetch interviews: ${error.message}`)

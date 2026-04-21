@@ -34,3 +34,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code memory
+.claude/
+
+# Supabase local dev
+supabase/.env
+supabase/functions/.env
+
+# OS
+Thumbs.db
+
+# logs
+*.log

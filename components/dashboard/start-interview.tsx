@@ -1,470 +1,339 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Play,
-  Code,
-  Users,
-  BarChart3,
-  Briefcase,
-  MessageSquare,
-  Mic,
-  ArrowRight,
-  Clock,
-  Target,
-  FileText,
-  Upload,
-  Loader2
-} from 'lucide-react';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { supabase } from '@/lib/supabase';
+import {
+  Play, FileText, Briefcase, Upload, X,
+  Loader2, ArrowRight, MessageCircle, Target, Info,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+
+const LEVELS = [
+  { id: 'entry',  label: 'Entry Level',  sub: '0–2 years' },
+  { id: 'mid',    label: 'Mid Level',    sub: '3–5 years' },
+  { id: 'senior', label: 'Senior Level', sub: '5+ years'  },
+] as const;
+
+const MODES = [
+  { id: 'chat',      label: 'Chat',      sub: 'Conversational AI interview', icon: MessageCircle },
+  { id: 'questions', label: 'Questions', sub: 'Structured Q&A format',       icon: Target        },
+] as const;
+
+type Level = typeof LEVELS[number]['id'];
+type Mode  = typeof MODES[number]['id'];
+
+const experienceDescriptions: Record<string, string> = {
+  'entry':  'Great for recent grads and career switchers. Questions focus on fundamentals and potential.',
+  'mid':    'Ideal for professionals with 3–5 years. Questions balance technical depth with leadership.',
+  'senior': 'For seasoned professionals. Expect strategic, cross-functional, and complex scenario questions.',
+};
+
+const cardStyle: React.CSSProperties = {
+  background: 'white',
+  border: '1px solid #EEECF8',
+  borderRadius: '16px',
+  boxShadow: '0 2px 12px rgba(99, 82, 199, 0.06)',
+  padding: '24px',
+};
+
+function UploadZone({ label, icon: Icon, file, onFile, onClear, uploading }: {
+  label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  file: File | null; onFile: (f: File) => void; onClear: () => void; uploading: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFile(f); };
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <input ref={inputRef} type="file" accept=".txt,.pdf,.doc,.docx" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+      {file ? (
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'linear-gradient(135deg, #EEF0FF, #F3EEFF)', border: '1px solid #C4BFEF' }}>
+          <Icon className="w-4 h-4 shrink-0" style={{ color: '#8B5CF6' }} />
+          <span className="text-sm text-[#1A1A2E] font-medium truncate flex-1">{file.name}</span>
+          {uploading
+            ? <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: '#8B5CF6' }} />
+            : <button onClick={onClear} className="shrink-0 transition-colors" style={{ color: '#8B5CF6' }}><X className="w-4 h-4" /></button>}
+        </div>
+      ) : (
+        <button
+          onClick={() => inputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={e => e.preventDefault()}
+          className="flex-1 w-full rounded-xl border-2 border-dashed border-[#D8D4F0] bg-[#F8F7FC] flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-[#8B5CF6] hover:bg-[#F0EEF8] transition-all py-6"
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-1" style={{ background: 'linear-gradient(135deg, #EEF0FF, #F3EEFF)' }}>
+            <Upload className="w-4 h-4 text-[#8B5CF6]" />
+          </div>
+          <p className="text-sm font-medium text-[#1A1A2E]">{label}</p>
+          <p className="text-xs text-[#1A1A2E40]">PDF, DOC, DOCX, TXT · Max 5MB</p>
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function StartInterview() {
   const { toast } = useToast();
   const [role, setRole] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
-  const [selectedMode, setSelectedMode] = useState('text');
+  const [level, setLevel] = useState<Level | ''>('');
+  const [mode, setMode] = useState<Mode>('chat');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jdFile, setJdFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadingJD, setUploadingJD] = useState(false);
+  const [starting, setStarting] = useState(false);
 
-  // PERF: Log page load time
-  useEffect(() => {
-    const pageLoadStart = window.performance.timing.navigationStart || performance.timeOrigin;
-    const now = performance.now();
-    const totalSinceNav = now + window.performance.timing.navigationStart - pageLoadStart;
-    console.log(`[PERF] /dashboard/interview: Component mounted at ${now.toFixed(0)}ms since page navigation.`);
-    // Optionally, log when UI is ready for interaction
-    setTimeout(() => {
-      console.log(`[PERF] /dashboard/interview: UI ready for interaction at ${(performance.now()).toFixed(0)}ms since navigation.`);
-    }, 0);
-  }, []);
+  const canStart = role.trim().length > 0 && level !== '';
+  const isDisabled = !canStart || starting || uploadingResume || uploadingJD;
 
-
-  const levels = [
-    { id: 'entry', name: 'Entry Level (0-2 years)', description: 'Perfect for new graduates and career changers' },
-    { id: 'mid', name: 'Mid Level (3-5 years)', description: 'For professionals with some experience' },
-    { id: 'senior', name: 'Senior Level (5+ years)', description: 'For experienced professionals and leaders' },
-  ];
-
-  const extractTextFromFile = async (file: File): Promise<string> => {
+  const extractText = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await fetch('/api/extract-text', {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) {
-      throw new Error('Failed to extract text from file');
-    }
-    const data = await response.json();
-    return data.text || '';
+    const res = await fetch('/api/extract-text', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Failed to extract text');
+    return (await res.json()).text || '';
   };
 
-  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Resume file size must be less than 5MB');
-      return;
-    }
-
-    setResumeFile(file);
-    setResumeText('');
-
-    try {
-      const text = await extractTextFromFile(file);
-      setResumeText(text);
-    } catch (err) {
-      alert('Failed to extract text from resume. Please use a supported file type.');
-    }
+  const handleResumeFile = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) { toast({ title: 'File too large', description: 'Max 5MB.', variant: 'destructive' }); return; }
+    setResumeFile(file); setUploadingResume(true);
+    try { setResumeText(await extractText(file)); }
+    catch { toast({ title: 'Upload failed', description: 'Could not read resume.', variant: 'destructive' }); setResumeFile(null); }
+    finally { setUploadingResume(false); }
   };
 
-  const handleJDUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Job description file size must be less than 5MB');
-      return;
-    }
-
-    setJdFile(file);
-    setJdText('');
-
-    try {
-      const text = await extractTextFromFile(file);
-      setJdText(text);
-    } catch (err) {
-      alert('Failed to extract text from job description. Please use a supported file type.');
-    }
+  const handleJDFile = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) { toast({ title: 'File too large', description: 'Max 5MB.', variant: 'destructive' }); return; }
+    setJdFile(file); setUploadingJD(true);
+    try { setJdText(await extractText(file)); }
+    catch { toast({ title: 'Upload failed', description: 'Could not read job description.', variant: 'destructive' }); setJdFile(null); }
+    finally { setUploadingJD(false); }
   };
 
-  const handleStartInterview = async () => {
-    if (!role.trim()) {
-      toast({
-        title: "Role Required",
-        description: "Please enter a job role to continue.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsGeneratingQuestions(true);
-
+  const handleStart = async () => {
+    if (!canStart || starting) return;
+    setStarting(true);
     try {
-      const frontendStart = performance.now();
-      console.log('[PERF] StartInterview: Button clicked');
-
-      // Show immediate feedback
-      toast({
-        title: "Generating Questions...",
-        description: "This may take a few seconds. Please wait.",
-      });
-
-      // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated. Please log in again.');
 
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-
-      const response = await fetch('/api/generate-questions', {
+      const res = await fetch('/api/generate-questions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          role: role.trim(),
-          experienceLevel: selectedLevel,
-          responseFormat: selectedMode === 'text' ? 'mixed' : 'mixed', // For now, always mixed
-          resumeText: resumeText || undefined,
-          jobDescriptionText: jdText || undefined,
-          mode: selectedMode || 'chat', // <-- send mode
-        }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ role: role.trim(), experienceLevel: level, responseFormat: 'mixed', resumeText: resumeText || undefined, jobDescriptionText: jdText || undefined, mode }),
       });
-
-      const frontendDuration = performance.now() - frontendStart;
-      console.log(`[PERF] StartInterview: Total time = ${frontendDuration.toFixed(0)}ms`);
-
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create interview session');
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'session_limit_reached') {
+          toast({
+            title: "You've used all your sessions this month",
+            description: "Upgrade your plan for more sessions, or wait until the 1st of next month for your limit to reset.",
+            action: (
+              <ToastAction altText="Upgrade plan" onClick={() => window.location.href = '/dashboard/settings'}>
+                Upgrade plan
+              </ToastAction>
+            ),
+          });
+          return;
+        }
+        throw new Error(data.error || 'Failed to create session');
       }
-
-      toast({
-        title: "Interview Session Created!",
-        description: `Your mock interview is ready. Good luck!`,
-      });
-
-      // Redirect to interview session
       window.location.href = `/dashboard/interview/session?id=${data.sessionId}`;
-
     } catch (error) {
-      console.error('Error generating questions:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate interview questions. Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to start interview. Please try again.', variant: 'destructive' });
     } finally {
-      setIsGeneratingQuestions(false);
+      setStarting(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="flex flex-col gap-4 w-full pb-6">
+
       {/* Header */}
-      <div className="max-w-6xl mx-auto text-center">
-        <h1 className="text-3xl font-bold mb-2">Start Your Interview</h1>
-        <p className="text-muted-foreground">
-          Choose your role, experience level, and preferred format to get started
-        </p>
+      <div>
+        <h1 className="text-2xl font-bold text-[#1A1A2E]">Start an Interview</h1>
+        <p className="text-sm text-[#1A1A2E60] mt-1">Configure your session and let the AI take it from there.</p>
       </div>
 
-            {/* Role Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Enter Your Role
-          </CardTitle>
-          <CardDescription>
-            Type the position you&apos;re preparing for
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="role-input">Role</Label>
-            <Input
-              id="role-input"
-              placeholder="e.g., Frontend Developer, Product Manager, Data Scientist"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Bento Grid */}
+      <div className="grid grid-cols-12 grid-rows-[auto_auto_auto] gap-4 flex-1">
 
-      {/* File Uploads */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Resume Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="w-5 h-5" />
-              Upload Resume (Optional)
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Upload your resume to get more personalized interview questions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="resume-upload">Resume File</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="resume-upload"
-                  type="file"
-                  accept=".txt,.pdf,.doc,.docx"
-                  onChange={handleResumeUpload}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById('resume-upload')?.click()}
+        {/* Cell 1 — Target Role (full width) */}
+        <div className="col-span-12" style={cardStyle}>
+          <label className="block text-xs font-semibold uppercase tracking-widest text-[#1A1A2E40] mb-3">
+            Target role <span className="text-red-400 normal-case tracking-normal font-normal">*</span>
+          </label>
+          <input
+            type="text"
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            placeholder="e.g. Frontend Developer, Product Manager, Data Scientist"
+            className="w-full rounded-xl border border-[#EEECF8] bg-[#F8F7FC] px-4 py-3 text-sm text-[#1A1A2E] placeholder:text-[#1A1A2E30] focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/10 transition-all"
+          />
+        </div>
+
+        {/* Cell 2 — Experience Level (7 cols) */}
+        <div className="col-span-12 md:col-span-7" style={cardStyle}>
+          <label className="block text-xs font-semibold uppercase tracking-widest text-[#1A1A2E40] mb-3">
+            Experience level <span className="text-red-400 normal-case tracking-normal font-normal">*</span>
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {LEVELS.map(({ id, label, sub }) => {
+              const selected = level === id;
+              return (
+                <motion.button
+                  key={id}
+                  onClick={() => setLevel(id)}
+                  className="flex-1 rounded-xl px-4 py-3 sm:py-5 text-sm cursor-pointer text-center relative overflow-hidden"
+                  animate={{
+                    borderColor: selected ? 'transparent' : '#EEECF8',
+                    color: selected ? '#ffffff' : '#4A4A6A',
+                  }}
+                  transition={{ duration: 0.18 }}
+                  style={{ border: '1px solid #EEECF8', background: 'white' }}
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choose Resume File
-                </Button>
-                {resumeFile && (
-                  <span className="text-sm text-muted-foreground">
-                    {resumeFile.name}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Supported formats: TXT, PDF, DOC, DOCX (Max 5MB)
-              </p>
-            </div>
-
-            {/* Remove the preview blocks for resumeText and jdText. Only show the filename if present. */}
-          </CardContent>
-        </Card>
-
-        {/* Job Description Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Briefcase className="w-5 h-5" />
-              Upload Job Description (Optional)
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Upload the job description to get role-specific interview questions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="jd-upload">Job Description File</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="jd-upload"
-                  type="file"
-                  accept=".txt,.pdf,.doc,.docx"
-                  onChange={handleJDUpload}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById('jd-upload')?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choose JD File
-                </Button>
-                {jdFile && (
-                  <span className="text-sm text-muted-foreground">
-                    {jdFile.name}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Supported formats: TXT, PDF, DOC, DOCX (Max 5MB)
-              </p>
-            </div>
-
-            {/* Remove the preview blocks for resumeText and jdText. Only show the filename if present. */}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Experience Level */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5" />
-            Experience Level
-          </CardTitle>
-          <CardDescription>
-            Select your experience level to get appropriate questions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {levels.map((level) => (
-              <div
-                key={level.id}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                  selectedLevel === level.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-                onClick={() => setSelectedLevel(level.id)}
-              >
-                <div className="space-y-2">
-                  <div className="font-medium">{level.name}</div>
-                  <div className="text-sm text-muted-foreground">{level.description}</div>
-                </div>
-              </div>
-            ))}
+                  <motion.span
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(135deg, #5B6CF9, #8B5CF6)', borderRadius: 'inherit' }}
+                    animate={{ opacity: selected ? 1 : 0 }}
+                    transition={{ duration: 0.18 }}
+                  />
+                  <span className="relative block font-semibold">{label}</span>
+                  <motion.span
+                    className="relative block text-xs mt-0.5"
+                    animate={{ opacity: selected ? 0.7 : 0.4 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    {sub}
+                  </motion.span>
+                </motion.button>
+              );
+            })}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Interview Format */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            Interview Format
-          </CardTitle>
-          <CardDescription>
-            Choose how you&lsquo;d like to respond to questions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup value={selectedMode} onValueChange={setSelectedMode}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="text" id="text" />
-                <Label htmlFor="text" className="flex-1">
-                  <div className="p-4 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <MessageSquare className="w-6 h-6 text-primary" />
-                      <div>
-                        <div className="font-medium">Text Responses</div>
-                        <div className="text-xs pt-1 text-muted-foreground">
-                          Type your answers and get detailed feedback
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="audio" id="audio" />
-                <Label htmlFor="audio" className="flex-1">
-                  <div className="p-4 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <Mic className="w-6 h-6 text-primary" />
-                      <div>
-                        <div className="font-medium">Audio Responses</div>
-                        <div className="text-xs pt-1 text-muted-foreground">
-                          Record your answers for natural practice
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Label>
-              </div>
-            </div>
-          </RadioGroup>
-        </CardContent>
-      </Card>
-
-      {/* Session Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Session Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <div className="font-medium">Duration</div>
-                <div className="text-sm text-muted-foreground">30-45 minutes</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <div className="font-medium">Questions</div>
-                <div className="text-sm text-muted-foreground">8-12 tailored questions</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                <Target className="w-5 h-5 text-purple-500" />
-              </div>
-              <div>
-                <div className="font-medium">Feedback</div>
-                <div className="text-sm text-muted-foreground">Instant AI analysis</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Start Button */}
-      <div className="text-center">
-        <Button
-          size="lg"
-          className="btn-primary text-lg px-8 py-4"
-          disabled={!role.trim() || !selectedLevel || !selectedMode || isGeneratingQuestions}
-          onClick={handleStartInterview}
-        >
-          {isGeneratingQuestions ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Generating Questions...
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5 mr-2" />
-              Start Interview Session
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </>
+          {level && (
+            <motion.p
+              key={level}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-xs text-[#1A1A2E60] mt-3 leading-relaxed"
+            >
+              {experienceDescriptions[level]}
+            </motion.p>
           )}
-        </Button>
+        </div>
 
-        {(!role.trim() || !selectedLevel || !selectedMode) && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Please fill in all fields above to continue
+        {/* Cell 3 — Interview Format (5 cols) */}
+        <div className="col-span-12 md:col-span-5 flex flex-col" style={cardStyle}>
+          <label className="block text-xs font-semibold uppercase tracking-widest text-[#1A1A2E40] mb-3">
+            Interview format
+          </label>
+          <div className="flex flex-col gap-2 flex-1">
+            {MODES.map(({ id, label, sub, icon: Icon }) => {
+              const questionsLocked = id === 'questions' && !resumeText && !jdText;
+              const selected = mode === id;
+              return selected ? (
+                <button
+                  key={id}
+                  onClick={() => setMode(id)}
+                  className="rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all text-left"
+                  style={{ background: 'linear-gradient(135deg, #5B6CF9, #8B5CF6)' }}
+                >
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/20">
+                    <Icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-white font-semibold">{label}</p>
+                    <p className="text-xs text-white/70">{sub}</p>
+                  </div>
+                </button>
+              ) : (
+                <button
+                  key={id}
+                  onClick={() => !questionsLocked && setMode(id)}
+                  disabled={questionsLocked}
+                  className={`rounded-xl border border-[#EEECF8] p-3 flex items-center gap-3 transition-all text-left ${questionsLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:border-[#8B5CF6] hover:bg-[#F8F7FC]'}`}
+                  style={{ background: 'white' }}
+                >
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #EEF0FF, #F3EEFF)' }}>
+                    <Icon className="w-4 h-4 text-[#8B5CF6]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#1A1A2E]">{label}</p>
+                    <p className="text-xs text-[#1A1A2E40]">
+                      {questionsLocked ? 'Upload a resume or JD to unlock' : sub}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cell 4 — Resume Upload (6 cols) */}
+        <div className="col-span-12 md:col-span-6 flex flex-col" style={cardStyle}>
+          <div className="flex items-center gap-1.5 mb-3">
+            <label className="text-xs font-semibold uppercase tracking-widest text-[#1A1A2E40]">
+              Resume
+            </label>
+            <span className="text-xs text-[#1A1A2E30] normal-case tracking-normal font-normal">— optional</span>
+          </div>
+          <UploadZone
+            label="Upload resume"
+            icon={FileText}
+            file={resumeFile}
+            onFile={handleResumeFile}
+            onClear={() => { setResumeFile(null); setResumeText(''); }}
+            uploading={uploadingResume}
+          />
+        </div>
+
+        {/* Cell 5 — Job Description Upload (6 cols) */}
+        <div className="col-span-12 md:col-span-6 flex flex-col" style={cardStyle}>
+          <div className="flex items-center gap-1.5 mb-3">
+            <label className="text-xs font-semibold uppercase tracking-widest text-[#1A1A2E40]">
+              Job Description
+            </label>
+            <span className="text-xs text-[#1A1A2E30] normal-case tracking-normal font-normal">— optional</span>
+          </div>
+          <UploadZone
+            label="Upload job description"
+            icon={Briefcase}
+            file={jdFile}
+            onFile={handleJDFile}
+            onClear={() => { setJdFile(null); setJdText(''); }}
+            uploading={uploadingJD}
+          />
+        </div>
+
+        {/* Cell 6 — Disclaimer + CTA (full width) */}
+        <div className="col-span-12 flex flex-col gap-2">
+          <p className="text-xs text-[#1A1A2E40] text-center flex items-center justify-center gap-1.5">
+            <Info className="w-3.5 h-3.5 shrink-0" />
+            This interview is AI-conducted. Scores and feedback are for practice only — AI can make mistakes. Please double-check responses.
           </p>
-        )}
+          <button
+            onClick={handleStart}
+            disabled={isDisabled}
+            className={`w-full rounded-xl py-3.5 font-semibold text-sm text-white flex items-center justify-center gap-2 transition-opacity ${isDisabled ? 'cursor-not-allowed' : 'hover:opacity-90 cursor-pointer'}`}
+            style={{
+              background: 'linear-gradient(135deg, #5B6CF9, #8B5CF6)',
+              opacity: isDisabled ? 0.4 : 1,
+              boxShadow: isDisabled ? 'none' : '0 4px 20px rgba(91, 108, 249, 0.3)',
+            }}
+          >
+            {starting
+              ? <><Loader2 className="w-4 h-4 animate-spin" />Creating session…</>
+              : <><Play className="w-4 h-4" />Start Interview<ArrowRight className="w-4 h-4 ml-1" /></>}
+          </button>
+        </div>
+
       </div>
     </div>
   );

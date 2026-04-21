@@ -1,10 +1,11 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
+import { Outfit } from 'next/font/google';
 
-const poppins = Poppins({ 
+const outfit = Outfit({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700']
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-outfit',
 });
 
 export const metadata: Metadata = {
@@ -18,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={poppins.className}>{children}</body>
+    <html lang="en">
+      <body className={`${outfit.variable} font-sans`}>{children}</body>
     </html>
   );
 }

@@ -13,11 +13,24 @@ interface Question {
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
+interface QARecord {
+  question: string;
+  answer: string;
+  score: number | null;
+  feedback: string;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface InterviewSession {
   id: string;
   user_id: string;
   title: string;
   type: string;
+  mode?: string;
   role: string;
   experience_level: string;
   questions: Question[];
@@ -30,6 +43,9 @@ interface InterviewSession {
   job_description_file_path?: string;
   resume_text?: string;
   job_description_text?: string;
+  feedback?: string;
+  chat_messages?: ChatMessage[];
+  qa_records?: QARecord[];
 }
 
 export function useInterviewSession(sessionId: string | null) {

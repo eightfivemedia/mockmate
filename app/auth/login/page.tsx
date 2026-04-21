@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,23 +9,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Target } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const { signInWithEmail, signInWithGoogle } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Check for error from callback
-  const callbackError = searchParams.get('error');
-  if (callbackError) {
-    setError('Authentication failed. Please try again.');
-  }
+  useEffect(() => {
+    if (searchParams?.get('error')) {
+      setError('Authentication failed. Please try again.');
+    }
+  }, [searchParams]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +37,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     }
   };
 
@@ -161,5 +161,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

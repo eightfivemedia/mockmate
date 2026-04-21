@@ -11,7 +11,72 @@ interface AuthState {
   loading: boolean
 }
 
+// ── Cache helpers ────────────────────────────────────────────
+const CACHE_KEY = 'mockmate_auth_cache'
+const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+type AuthCache = {
+  user: Pick<User, 'id' | 'email'>
+  profile: UserProfile | null
+  cachedAt: number
+}
+
+function readCache(): AuthCache | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const cache: AuthCache = JSON.parse(raw)
+    if (Date.now() - cache.cachedAt > CACHE_TTL) {
+      localStorage.removeItem(CACHE_KEY)
+      return null
+    }
+    return cache
+  } catch {
+    return null
+  }
+}
+
+function writeCache(user: User, profile: UserProfile | null) {
+  try {
+    const cache: AuthCache = {
+      user: { id: user.id, email: user.email },
+      profile,
+      cachedAt: Date.now(),
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+  } catch {}
+}
+
+function clearCache() {
+  try {
+    localStorage.removeItem(CACHE_KEY)
+  } catch {}
+}
+// ────────────────────────────────────────────────────────────
+
+const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const fetchPromise = supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    const timeoutPromise = new Promise<{ data: null; error: Error }>(
+      (_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)
+    )
+
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise])
+    if (error) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
 export function useAuth() {
+  // Server and client both start with loading: true to avoid hydration mismatch.
+  // Cache is read in useEffect (client-only) immediately after mount.
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
@@ -22,154 +87,91 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true
 
-    // Get initial session
-    const getInitialSession = async () => {
-      console.log('useAuth: Getting initial session...')
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('useAuth: Initial session:', session)
-
-      if (!mounted) return
-
-      if (session?.user) {
-        const profile = await getUserProfile(session.user.id)
-        console.log('useAuth: Setting auth state with profile:', profile)
-        if (mounted) {
-          setAuthState({
-            user: session.user,
-            session,
-            profile,
-            loading: false,
-          })
-        }
-      } else {
-        console.log('useAuth: No session, setting empty auth state')
-        if (mounted) {
-          setAuthState({
-            user: null,
-            session: null,
-            profile: null,
-            loading: false,
-          })
-        }
-      }
+    // Restore from cache immediately — happens before onAuthStateChange resolves
+    const cache = readCache()
+    if (cache && mounted) {
+      setAuthState({
+        user: cache.user as User,
+        session: null,
+        profile: cache.profile,
+        loading: false,
+      })
     }
 
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (mounted && authState.loading) {
-        console.log('useAuth: Timeout reached, setting loading to false')
-        setAuthState(prev => ({ ...prev, loading: false }))
+    // Safety net: if onAuthStateChange never fires, clear loading after 6s
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        setAuthState(prev => prev.loading ? { ...prev, loading: false } : prev)
       }
-    }, 5000) // 5 second timeout
+    }, 6000)
 
-    getInitialSession()
-
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return
+
         if (session?.user) {
+          // Fetch fresh profile in background — cache means UI is already visible
           const profile = await getUserProfile(session.user.id)
-          setAuthState({
-            user: session.user,
-            session,
-            profile,
-            loading: false,
-          })
+          if (mounted) {
+            writeCache(session.user, profile)
+            setAuthState({ user: session.user, session, profile, loading: false })
+          }
         } else {
-          setAuthState({
-            user: null,
-            session: null,
-            profile: null,
-            loading: false,
-          })
+          clearCache()
+          if (mounted) {
+            setAuthState({ user: null, session: null, profile: null, loading: false })
+          }
         }
       }
     )
 
     return () => {
       mounted = false
-      clearTimeout(timeoutId)
+      clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
   }, [])
 
-  const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
-    try {
-      console.log('useAuth: Fetching profile for user:', userId)
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching user profile:', error)
-        return null
-      }
-
-      console.log('useAuth: Profile fetched successfully:', data)
-      return data
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-      return null
-    }
-  }
-
   const signInWithEmail = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     return { data, error }
   }
 
   const signUpWithEmail = async (email: string, password: string, name?: string) => {
-    console.log('useAuth: signUpWithEmail called with:', { email, name });
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          name,
-        },
-      },
+      options: { data: { name } },
     })
 
-    console.log('useAuth: signUp result:', { data, error });
-
-    // If signup was successful, try to create profile manually if needed
     if (data.user && !error) {
-      console.log('useAuth: Signup successful, checking if profile exists...');
+      await new Promise(resolve => setTimeout(resolve, 800))
 
-      // Wait a moment for the trigger to potentially work
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if profile exists
-      const { data: profile, error: profileError } = await supabase
+      const { data: existing } = await supabase
         .from('users')
-        .select('*')
+        .select('id')
         .eq('id', data.user.id)
-        .single();
+        .single()
 
-      console.log('useAuth: Profile check after signup:', { profile, profileError });
+      if (!existing) {
+        const userEmail = data.user.email!
+        const isStudent = userEmail.toLowerCase().endsWith('.edu')
+        const now = new Date().toISOString()
+        const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
 
-      // If no profile exists, create one manually
-      if (!profile && !profileError) {
-        console.log('useAuth: Creating profile manually...');
-        const { data: newProfile, error: createError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
-            name: name || data.user.user_metadata?.name || data.user.user_metadata?.full_name,
-            plan: 'free',
-            credits: 5,
-          })
-          .select()
-          .single();
-
-        console.log('useAuth: Manual profile creation result:', { newProfile, createError });
+        await supabase.from('users').insert({
+          id: data.user.id,
+          email: userEmail,
+          name: name || data.user.user_metadata?.name || data.user.user_metadata?.full_name,
+          plan: 'free',
+          credits: 5,
+          sessions_reset_at: new Date().toISOString(),
+          ...(isStudent && {
+            student_verified_at: now,
+            student_tier_expires_at: expiresAt,
+            student_discount_active: true,
+          }),
+        })
       }
     }
 
@@ -181,16 +183,14 @@ export function useAuth() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+        queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })
     return { data, error }
   }
 
   const signOut = async () => {
+    clearCache()
     const { error } = await supabase.auth.signOut()
     return { error }
   }

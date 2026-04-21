@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { supabase as clientSupabase } from '@/lib/supabase';
 import OpenAI from 'openai';
 import { performance } from 'perf_hooks';
+import { trackApiCost } from '@/lib/ai-cost';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -30,6 +32,8 @@ interface ChatRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, { limit: 30, window: 60, prefix: 'chat' });
+  if (limited) return limited;
   const totalStart = performance.now();
   try {
     // Get the authorization header from the request
@@ -50,7 +54,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ChatRequest = await request.json();
-    const { sessionId, message, conversationHistory } = body;
+    const { sessionId, conversationHistory } = body;
+    const message = String(body.message || '').substring(0, 4000);
 
     // Get the interview session to understand the context
     const { data: session, error: sessionError } = await supabase
@@ -91,15 +96,25 @@ Be conversational, ask one question at a time, and provide brief feedback when a
       { role: 'user' as const, content: message }
     ];
 
+    const activeModel = process.env.AI_MODEL ?? 'gpt-4o-mini';
     const openAIStart = performance.now();
-    // Call OpenAI
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: activeModel,
       messages,
       max_tokens: 500,
       temperature: 0.7,
     });
     const openAIDuration = performance.now() - openAIStart;
+
+    // Fire-and-forget cost tracking
+    if (completion.usage) {
+      void trackApiCost({
+        userId: user.id,
+        inputTokens: completion.usage.prompt_tokens,
+        outputTokens: completion.usage.completion_tokens,
+        model: activeModel,
+      });
+    }
 
     const assistantResponse = completion.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response. Please try again.';
 
@@ -110,14 +125,14 @@ Be conversational, ask one question at a time, and provide brief feedback when a
       { role: 'assistant' as const, content: assistantResponse }
     ];
 
-    // Store the conversation in the session (you might want to add a conversations column to your table)
     await supabase
       .from('interview_sessions')
       .update({
         questions_answered: session.questions_answered + 1,
-        // You could add a conversations column to store the full chat history
+        chat_messages: updatedHistory,
       })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .eq('user_id', user.id);
 
     const totalDuration = performance.now() - totalStart;
     console.log(`[PERF] /api/interview-chat: total=${totalDuration.toFixed(0)}ms, openai=${openAIDuration.toFixed(0)}ms`);

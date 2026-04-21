@@ -1,249 +1,185 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { useEffect, useState } from 'react';
 import {
-  Home,
-  Play,
-  History,
-  Settings as SettingsIcon,
-  Target,
-  User,
-  LogOut,
-  Moon,
-  Sun,
-  Menu,
-  X,
-  GraduationCap,
-  FileText,
-  Plus
+  Home, Play, History, Settings as SettingsIcon, Target,
+  LogOut, Menu, X, GraduationCap, FileText, Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Toaster } from '@/components/ui/sonner';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
+const navigation = [
+  { name: 'Dashboard',       href: '/dashboard',              icon: Home },
+  { name: 'Start Interview', href: '/dashboard/interview',    icon: Play },
+  { name: 'Resume Checker',  href: '/dashboard/resume',       icon: FileText },
+  { name: 'Create Resume',   href: '/dashboard/create-resume',icon: Plus },
+  { name: 'Past Sessions',   href: '/dashboard/sessions',     icon: History },
+];
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
-  const [isDark, setIsDark] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth/login');
-    }
-  }, [user, loading, router]);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
-  };
+    if (!loading && !user) window.location.href = '/auth/login';
+  }, [user, loading]);
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/auth/login');
+    window.location.href = '/auth/login';
   };
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Start Interview', href: '/dashboard/interview', icon: Play },
-    { name: 'Resume Checker', href: '/dashboard/resume', icon: FileText },
-    { name: 'Create Resume', href: '/dashboard/create-resume', icon: Plus },
-    { name: 'Past Sessions', href: '/dashboard/sessions', icon: History },
-  ];
-
-  // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F5F7' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+            <Target className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex gap-1.5">
+            {[0, 150, 300].map(d => (
+              <span key={d} className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
+                style={{ animationDelay: `${d}ms` }} />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Don't render anything if user is not authenticated (will redirect)
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  const firstName = profile?.name?.split(' ')[0] || 'User';
+  const initials = profile?.name
+    ? profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : (user.email?.[0] ?? 'U').toUpperCase();
 
   return (
-    <div className={`h-screen bg-background ${isDark ? 'dark' : ''}`}>
-      {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center space-x-3 ml-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Target className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold gradient-text">MockMate</span>
-          </div>
+    <div className="flex h-screen overflow-hidden" style={{ background: '#F5F5F7' }}>
 
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="w-9 h-9 mr-2"
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="w-9 h-9 mr-2"
-            >
-              {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* ─── Sidebar ─── */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 w-[220px] flex flex-col
+        bg-white border-r border-[#EEECF8]
+        transition-transform duration-200 ease-in-out
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:static lg:h-screen
+      `}>
 
-      <div className="flex h-full">
-        {/* Sidebar - Fixed height 100vh */}
-        <aside className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 w-64 bg-card border-r transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:h-screen`}>
-          <div className="flex h-full flex-col">
-            {/* Logo */}
-            <div className="flex h-16 items-center px-6 flex-shrink-0">
-              <div className="flex items-center space-x-3 ml-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Target className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold gradient-text">MockMate</span>
-              </div>
-            </div>
-
-            {/* Navigation - Scrollable if needed */}
-            <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground shadow-md'
-                        : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-                    }`}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.name}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* User Profile - Fixed at bottom */}
-            <div className="p-4 flex-shrink-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-start p-3 h-auto">
-                    <div className="flex items-center space-x-3 w-full">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {profile?.profile_image_url ? (
-                          <Image
-                            src={profile.profile_image_url}
-                            alt="Profile"
-                            width={40}
-                            height={40}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <User className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="font-medium text-sm truncate">{profile?.name || firstName}</div>
-                      </div>
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64" align="end" side="top">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium leading-none">{profile?.name || firstName}</p>
-                        <Badge variant="secondary" className="text-xs capitalize">
-                          {profile?.plan || 'free'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/onboarding" className="cursor-pointer">
-                      <GraduationCap className="w-4 h-4 mr-2" />
-                      Onboarding
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/settings" className="cursor-pointer">
-                      <SettingsIcon className="w-4 h-4 mr-2" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={toggleTheme}>
-                    {isDark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
-                    {isDark ? 'Light Mode' : 'Dark Mode'}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </aside>
-
-        {/* Overlay for mobile */}
-        {isSidebarOpen && (
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 px-5 h-[64px] shrink-0 border-b border-[#EEECF8]">
           <div
-            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'linear-gradient(135deg, #5B6CF9, #8B5CF6)' }}
+          >
+            <Target className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-sm font-bold text-[#1A1A2E]">MockMate</span>
+        </div>
 
-        {/* Main content - Scrollable */}
-        <main className="flex-1 flex flex-col lg:ml-0">
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-6">
-              {children}
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
+          {navigation.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                  active ? 'text-white' : 'text-[#4A4A6A] hover:bg-[#F5F5F7] hover:text-[#1A1A2E]'
+                }`}
+                style={active ? { background: 'linear-gradient(135deg, #5B6CF9, #8B5CF6)' } : {}}
+              >
+                <item.icon className="w-4 h-4 shrink-0" style={{ color: active ? 'white' : '#8B8BAE' }} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User */}
+        <div className="px-3 pb-4 shrink-0 border-t border-[#EEECF8] pt-3 mt-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F5F5F7] transition-colors text-left">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg, #5B6CF9, #8B5CF6)' }}>
+                  {profile?.profile_image_url ? (
+                    <Image src={profile.profile_image_url} alt="Avatar" width={32} height={32} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-white">{initials}</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#1A1A2E] truncate leading-tight">{profile?.name || user.email}</p>
+                  <p className="text-xs leading-tight mt-0.5 capitalize" style={{ color: '#8B8BAE' }}>{profile?.plan ?? 'free'} plan</p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="start" side="top">
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-medium">{profile?.name || 'Account'}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/onboarding" className="cursor-pointer">
+                  <GraduationCap className="w-4 h-4 mr-2" /> Onboarding
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings" className="cursor-pointer">
+                  <SettingsIcon className="w-4 h-4 mr-2" /> Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer">
+                <LogOut className="w-4 h-4 mr-2" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* ─── Main content ─── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Mobile topbar */}
+        <header className="lg:hidden flex items-center justify-between px-4 h-[64px] bg-white border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #5B6CF9, #8B5CF6)' }}>
+              <Target className="w-4 h-4 text-white" />
             </div>
+            <span className="font-bold text-gray-900 tracking-tight">MockMate</span>
+          </div>
+          <button onClick={() => setMobileOpen(!mobileOpen)}
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+            {mobileOpen ? <X className="w-4 h-4 text-gray-500" /> : <Menu className="w-4 h-4 text-gray-500" />}
+          </button>
+        </header>
+
+        {/* Scrollable content */}
+        <main className="flex-1 overflow-y-auto" style={{ background: '#F5F5F7' }}>
+          <div className="px-4 py-4 md:px-8 md:py-8 max-w-6xl mx-auto">
+            {children}
           </div>
         </main>
       </div>
 
-      {/* Toaster for notifications */}
       <Toaster />
     </div>
   );

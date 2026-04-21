@@ -34,6 +34,9 @@ export interface User {
   name?: string
   plan: 'free' | 'monthly' | 'credit-based'
   credits: number
+  session_hard_cap?: number
+  monthly_session_limit?: number
+  sessions_used_this_month?: number
   created_at: string
 }
 
@@ -43,6 +46,9 @@ export interface UserProfile {
   name?: string
   plan: 'free' | 'monthly' | 'credit-based'
   credits: number
+  session_hard_cap?: number
+  monthly_session_limit?: number
+  sessions_used_this_month?: number
   profile_image_url?: string
   created_at: string
 } 

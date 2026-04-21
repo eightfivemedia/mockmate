@@ -139,15 +139,27 @@ export function useUserProfile() {
     }
   }
 
+  const profile = state.profile
+  // Compute sessions remaining from the live tracking columns.
+  // Falls back to the legacy `credits` field if migration 012/013 hasn't run yet.
+  const sessionsRemaining = profile
+    ? profile.monthly_session_limit != null && profile.sessions_used_this_month != null
+      ? profile.monthly_session_limit >= 500
+        ? Infinity
+        : Math.max(0, profile.monthly_session_limit - profile.sessions_used_this_month)
+      : (profile.credits ?? 0)
+    : 0
+
   return {
-    profile: state.profile,
+    profile,
     loading: state.loading,
     error: state.error,
     refreshProfile,
     // Convenience getters for common profile fields
-    email: state.profile?.email || null,
-    name: state.profile?.name || null,
-    plan: state.profile?.plan || null,
-    credits: state.profile?.credits || 0,
+    email: profile?.email || null,
+    name: profile?.name || null,
+    plan: profile?.plan || null,
+    credits: sessionsRemaining,   // kept for backwards compat with existing consumers
+    sessions: sessionsRemaining,  // preferred name going forward
   }
 }

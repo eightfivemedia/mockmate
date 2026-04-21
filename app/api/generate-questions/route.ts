@@ -3,7 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { supabase as clientSupabase } from '@/lib/supabase';
 import { generateQuestionsWithOpenAI } from '@/lib/openai';
 import { getCachedQuestions, cacheQuestions } from '@/lib/cache';
+import { checkSessionAllowance } from '@/lib/ai-cost';
 import { performance } from 'perf_hooks';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -31,32 +33,39 @@ interface Question {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, { limit: 10, window: 60, prefix: 'generate' });
+  if (limited) return limited;
   const totalStart = performance.now();
   try {
     // Get the authorization header from the request
     const authHeader = request.headers.get('authorization');
-    console.log('Auth header:', authHeader);
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('No valid auth header found');
       return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
     }
-    
-    // Extract the token
+
     const token = authHeader.replace('Bearer ', '');
-    console.log('Token extracted:', token ? 'present' : 'missing');
-    
+
     // Verify the token and get user
     const { data: { user }, error: authError } = await clientSupabase.auth.getUser(token);
-    console.log('Auth check:', { user: user?.id, error: authError });
-    
+
     if (authError || !user) {
-      console.log('Authentication failed:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Gate: check session allowance before doing any work
+    const allowance = await checkSessionAllowance(user.id);
+    if (!allowance.allowed) {
+      return NextResponse.json(
+        { error: 'session_limit_reached', reason: allowance.reason },
+        { status: 429 }
+      );
+    }
+
     const body: GenerateQuestionsRequest = await request.json();
-    const { role, experienceLevel, resumeText, jobDescriptionText, responseFormat, mode } = body;
+    const { role, experienceLevel, responseFormat, mode } = body;
+    const resumeText = body.resumeText?.substring(0, 5000);
+    const jobDescriptionText = body.jobDescriptionText?.substring(0, 5000);
 
     // Validate required fields
     if (!role || !experienceLevel || !responseFormat) {
@@ -75,7 +84,7 @@ export async function POST(request: NextRequest) {
         type: responseFormat,
         role: role,
         experience_level: experienceLevel,
-        questions: [],
+        questions: '[]', // Fix: Use JSON string for JSONB column
         resume_file_path: resumeText ? 'resume_uploaded' : null,
         job_description_file_path: jobDescriptionText ? 'jd_uploaded' : null,
         resume_text: resumeText || null,
@@ -93,6 +102,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Increment session counter atomically
+    await supabase.rpc('increment_sessions_used', { user_id_input: user.id });
 
     const totalDuration = performance.now() - totalStart;
     console.log(`[PERF] /api/generate-questions: total=${totalDuration.toFixed(0)}ms (no OpenAI)`);

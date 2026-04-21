@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +11,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function SignupPage() {
+function SignupContent() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,31 +23,34 @@ export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Check for error from callback
-  const callbackError = searchParams.get('error');
-  if (callbackError) {
-    setError('Authentication failed. Please try again.');
-  }
+  useEffect(() => {
+    if (searchParams?.get('error')) {
+      setError('Authentication failed. Please try again.');
+    }
+  }, [searchParams]);
+
+  const plan = searchParams?.get('plan');
+  const interval = searchParams?.get('interval') ?? 'monthly';
+
+  const storePendingPlan = () => {
+    if (plan) {
+      localStorage.setItem('mockmate_pending_plan', JSON.stringify({ plan, interval }));
+    }
+  };
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    console.log('Starting signup process...', { email, firstName, lastName });
-
+    storePendingPlan();
     const name = `${firstName} ${lastName}`.trim();
     const { data, error } = await signUpWithEmail(email, password, name);
 
-    console.log('Signup result:', { data, error });
-
     if (error) {
-      console.error('Signup error:', error);
       setError(error.message);
       setLoading(false);
     } else {
-      console.log('Signup successful, redirecting to verify email...');
-      // Show success message or redirect
       router.push('/auth/verify-email');
     }
   };
@@ -55,6 +59,7 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
+    storePendingPlan();
     const { error } = await signInWithGoogle();
 
     if (error) {
@@ -189,5 +194,13 @@ export default function SignupPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupContent />
+    </Suspense>
   );
 }

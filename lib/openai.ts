@@ -205,7 +205,7 @@ export async function generateQuestionsWithOpenAI(params: {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: process.env.AI_MODEL ?? 'gpt-4o-mini',
       messages: [
         {
           role: "system",

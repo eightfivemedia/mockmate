@@ -9,57 +9,81 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      console.log('Auth callback: Starting...');
-      
       const { data, error } = await supabase.auth.getSession()
-      
+
       if (error) {
-        console.error('Auth callback error:', error)
         router.push('/auth/login?error=auth_callback_failed')
         return
       }
 
-      console.log('Auth callback: Session data:', data);
-
       if (data.session) {
-        console.log('Auth callback: User authenticated:', data.session.user.id);
-        
         // Check if user profile exists, if not create one
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('users')
-          .select('*')
+          .select('id')
           .eq('id', data.session.user.id)
           .single()
 
-        console.log('Auth callback: Profile check result:', { profile, profileError });
-
         if (!profile) {
-          console.log('Auth callback: No profile found, creating one...');
-          
-          // Create user profile
-          const { data: newProfile, error: createError } = await supabase
+          const userEmail = data.session.user.email!;
+          const isStudent = userEmail.toLowerCase().endsWith('.edu');
+          const now = new Date().toISOString();
+          const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+
+          await supabase
             .from('users')
             .insert({
               id: data.session.user.id,
-              email: data.session.user.email!,
+              email: userEmail,
               name: data.session.user.user_metadata?.name || data.session.user.user_metadata?.full_name,
               plan: 'free',
-              credits: 5, // Give 5 free credits
+              credits: 5,
+              monthly_session_limit: 5,
+              sessions_reset_at: new Date().toISOString(),
+              ...(isStudent && {
+                student_verified_at: now,
+                student_tier_expires_at: expiresAt,
+                student_discount_active: true,
+              }),
             })
-            .select()
-            .single()
 
-          console.log('Auth callback: Profile creation result:', { newProfile, createError });
+          // Send welcome email (fire-and-forget)
+          fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-welcome-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${data.session.access_token}`,
+            },
+          }).catch(() => {/* ignore failures */})
+        }
 
-          if (createError) {
-            console.error('Error creating user profile:', createError)
-            // Still redirect to dashboard, profile can be created later
+        // Check for a pending plan from the pricing page
+        try {
+          const raw = localStorage.getItem('mockmate_pending_plan');
+          if (raw) {
+            const { plan, interval } = JSON.parse(raw);
+            localStorage.removeItem('mockmate_pending_plan');
+
+            const res = await fetch('/api/stripe/checkout', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${data.session.access_token}`,
+              },
+              body: JSON.stringify({ plan, interval }),
+            });
+            const json = await res.json();
+            if (json.url) {
+              window.location.href = json.url;
+              return;
+            }
           }
+        } catch {
+          // If checkout fails, fall through to dashboard
         }
 
         router.push('/dashboard')
       } else {
-        console.log('Auth callback: No session, redirecting to login');
         router.push('/auth/login')
       }
     }
@@ -75,4 +99,4 @@ export default function AuthCallback() {
       </div>
     </div>
   )
-} 
+}
