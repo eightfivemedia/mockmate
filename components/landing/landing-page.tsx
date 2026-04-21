@@ -260,17 +260,28 @@ export function LandingPage() {
   const [direction, setDirection] = useState(1);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isMobile, setIsMobile] = useState(false);
+  const [isLandscapeTablet, setIsLandscapeTablet] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const ctaVideoRef = useRef<HTMLVideoElement>(null);
   const currentRef = useRef(0);
   const touchStartY = useRef(0);
 
-  // Detect mobile
+  // Detect mobile + landscape tablet
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1280 || 'ontouchstart' in window);
+    const check = () => {
+      const touch = 'ontouchstart' in window;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      setIsMobile(w < 1280 || touch);
+      setIsLandscapeTablet(touch && w >= 768 && w > h);
+    };
     check();
     window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
   }, []);
 
   // Lock body scroll — desktop only
@@ -627,8 +638,12 @@ export function LandingPage() {
         <Header activeSection="hero" goTo={goTo} />
 
         {/* ── HERO ── */}
-        <section className="flex flex-col px-5 pb-10" style={{ paddingTop: '96px', background: '#0a1123' }}>
-          <div className="flex flex-col items-center text-center">
+        <section
+          className={`flex px-5 pb-10 ${isLandscapeTablet ? 'flex-row items-center gap-8' : 'flex-col'}`}
+          style={{ paddingTop: isLandscapeTablet ? '72px' : '96px', background: '#0a1123' }}
+        >
+          {/* Text + CTAs */}
+          <div className={`flex flex-col ${isLandscapeTablet ? 'flex-1 items-start text-left' : 'items-center text-center'}`}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-white/60 font-medium mb-5">
               <Brain className="w-3 h-3 text-blue-400" /> INTERVIEW COACH
             </div>
@@ -636,10 +651,10 @@ export function LandingPage() {
               Practice smarter.<br />
               Interview <Typewriter />
             </h1>
-            <p className="text-sm text-white/60 mb-7 max-w-xs leading-relaxed">
+            <p className={`text-sm text-white/60 mb-7 leading-relaxed ${isLandscapeTablet ? 'max-w-sm' : 'max-w-xs'}`}>
               MockMate reads your resume, knows the role, and runs a realistic mock interview. You get scored feedback on every answer — not generic tips.
             </p>
-            <div className="flex flex-col gap-3 w-full max-w-xs mb-6">
+            <div className={`flex flex-col gap-3 mb-6 ${isLandscapeTablet ? 'w-full max-w-xs' : 'w-full max-w-xs'}`}>
               <Link href="/auth/signup" className="w-full">
                 <Button className="w-full h-12 rounded-xl font-semibold text-base bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0">
                   Start for free <ArrowRight className="ml-2 w-4 h-4" />
@@ -656,7 +671,10 @@ export function LandingPage() {
               <span className="flex items-center gap-1"><Check className="w-3 h-3" /> No credit card</span>
               <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Any role</span>
             </div>
-            {/* Mini mockup card */}
+          </div>
+
+          {/* Mini mockup card */}
+          <div className={isLandscapeTablet ? 'flex-1 flex justify-center' : 'flex justify-center'}>
             <div className="w-full max-w-xs rounded-2xl bg-slate-800/90 border border-white/10 overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 bg-slate-900/60">
                 <div className="flex items-center gap-2">
