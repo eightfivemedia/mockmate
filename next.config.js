@@ -2,9 +2,6 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: { unoptimized: true },
   // pdf-parse reads test files during init when bundled; keep it server-side only
   serverExternalPackages: ['pdf-parse'],

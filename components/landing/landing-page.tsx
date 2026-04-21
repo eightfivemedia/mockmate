@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Header } from '@/components/landing/header';
-import { LandingPageMobileExperiment } from '@/components/landing/landing-page-mobile-experiment';
 import {
   ArrowRight,
   Check,
@@ -622,12 +621,6 @@ export function LandingPage() {
   ];
 
   // ── Mobile layout ─────────────────────────────────────────────────────────
-  const USE_MOBILE_EXPERIMENT = false; // flip to true to test Option B
-
-  if (isMobile && USE_MOBILE_EXPERIMENT) {
-    return <LandingPageMobileExperiment />;
-  }
-
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#0a1123' }}>
