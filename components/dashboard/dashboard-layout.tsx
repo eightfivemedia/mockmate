@@ -62,7 +62,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     : (user.email?.[0] ?? 'U').toUpperCase();
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#F5F5F7' }}>
+    <div className="fixed inset-0 flex overflow-hidden" style={{ background: '#F5F5F7' }}>
 
       {/* ─── Sidebar ─── */}
       <aside className={`
