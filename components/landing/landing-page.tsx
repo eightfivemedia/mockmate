@@ -267,7 +267,7 @@ export function LandingPage() {
 
   // Detect mobile
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024);
+    const check = () => setIsMobile(window.innerWidth < 1280 || 'ontouchstart' in window);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
