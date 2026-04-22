@@ -715,6 +715,7 @@ export function LandingPage() {
             className="flex flex-col items-center justify-center px-5 pb-10 text-center"
             style={{ minHeight: '100svh', paddingTop: '96px', background: '#0a1123' }}
           >
+            <div className="flex flex-col items-center text-center w-full max-w-lg md:max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-white/60 font-medium mb-5">
               <Brain className="w-3 h-3 text-blue-400" /> INTERVIEW COACH
             </div>
@@ -725,7 +726,7 @@ export function LandingPage() {
             <p className="text-sm text-white/60 mb-7 max-w-xs leading-relaxed">
               MockMate reads your resume, knows the role, and runs a realistic mock interview. You get scored feedback on every answer — not generic tips.
             </p>
-            <div className="flex flex-col gap-3 w-full max-w-xs mb-6">
+            <div className="flex flex-col gap-3 w-full max-w-xs md:max-w-sm mb-6">
               <Link href="/auth/signup" className="w-full">
                 <Button className="w-full h-12 rounded-xl font-semibold text-base bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0">
                   Start for free <ArrowRight className="ml-2 w-4 h-4" />
@@ -742,7 +743,7 @@ export function LandingPage() {
               <span className="flex items-center gap-1"><Check className="w-3 h-3" /> No credit card</span>
               <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Any role</span>
             </div>
-            <div className="w-full max-w-xs rounded-2xl bg-slate-800/90 border border-white/10 overflow-hidden">
+            <div className="w-full max-w-xs md:max-w-md rounded-2xl bg-slate-800/90 border border-white/10 overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 bg-slate-900/60">
                 <div className="flex items-center gap-2">
                   <Brain className="w-3.5 h-3.5 text-blue-400" />
@@ -770,11 +771,13 @@ export function LandingPage() {
                 <span className="text-sm font-bold text-blue-400">84 / 100</span>
               </div>
             </div>
+            </div>{/* end max-width wrapper */}
           </section>
         )}
 
         {/* ── FEATURES ── */}
         <section className="flex flex-col px-5 py-12 bg-white">
+          <div className="w-full max-w-lg md:max-w-2xl mx-auto">
           <p className="text-xs font-semibold text-blue-600 mb-3 tracking-widest uppercase">Features</p>
           <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-6">Built for candidates who take prep seriously</h2>
           <div className="flex flex-col gap-3">
@@ -805,10 +808,12 @@ export function LandingPage() {
               </div>
             ))}
           </div>
+          </div>{/* end max-width wrapper */}
         </section>
 
         {/* ── HOW IT WORKS ── */}
         <section className="flex flex-col px-5 py-12 bg-gray-50">
+          <div className="w-full max-w-lg md:max-w-2xl mx-auto">
           <p className="text-xs font-semibold text-blue-600 mb-3 tracking-widest uppercase">How It Works</p>
           <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-7">From resume to feedback in minutes</h2>
           <div className="flex flex-col gap-6">
@@ -828,10 +833,12 @@ export function LandingPage() {
               </div>
             ))}
           </div>
+          </div>{/* end max-width wrapper */}
         </section>
 
         {/* ── PRICING ── */}
         <section className="flex flex-col px-5 py-12 bg-white">
+          <div className="w-full max-w-lg md:max-w-2xl mx-auto">
           <p className="text-xs font-semibold text-blue-600 mb-3 tracking-widest uppercase">Pricing</p>
           <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-5">Simple pricing</h2>
           {/* Billing toggle */}
@@ -850,7 +857,7 @@ export function LandingPage() {
               </button>
             </div>
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-4">
             {/* Free */}
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 flex flex-col">
               <h3 className="font-semibold text-gray-900 mb-1">Free</h3>
@@ -920,10 +927,12 @@ export function LandingPage() {
               </Link>
             </div>
           </div>
+          </div>{/* end max-width wrapper */}
         </section>
 
         {/* ── FAQ ── */}
         <section className="flex flex-col px-5 py-12 bg-gray-50">
+          <div className="w-full max-w-lg md:max-w-2xl mx-auto">
           <p className="text-xs font-semibold text-blue-600 mb-3 tracking-widest uppercase">FAQ</p>
           <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-6">Questions</h2>
           <Accordion type="single" collapsible className="space-y-2">
@@ -940,6 +949,7 @@ export function LandingPage() {
               </AccordionItem>
             ))}
           </Accordion>
+          </div>{/* end max-width wrapper */}
         </section>
 
         {/* ── CTA + FOOTER — footer inside so video stretches through both ── */}
@@ -958,7 +968,7 @@ export function LandingPage() {
             src="/hero-video.mp4"
           />
           <div className="absolute inset-0" style={{ background: 'rgba(10,17,35,0.75)' }} />
-          <div className="relative z-10 w-full flex flex-col items-center">
+          <div className="relative z-10 w-full max-w-lg md:max-w-2xl mx-auto flex flex-col items-center">
             <h2 className="text-3xl font-bold text-white leading-tight tracking-tight mb-4">
               Your next{' '}
               <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">interview</span>{' '}
