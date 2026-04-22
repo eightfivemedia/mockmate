@@ -270,11 +270,11 @@ export function LandingPage() {
   // isTablet = touch device with >= 768px width (portrait OR landscape)
   useEffect(() => {
     const check = () => {
-      const w = window.innerWidth;
       const touch = 'ontouchstart' in window;
-      // Phones only get mobile layout. Tablets (768px+) get desktop scroll-jacking.
-      setIsMobile(touch && w < 768);
-      setIsTablet(touch && w >= 768);
+      // Any touch device (phone or tablet) gets the scrollable layout.
+      // Only non-touch devices get the scroll-jacking desktop experience.
+      setIsMobile(touch);
+      setIsTablet(touch && window.innerWidth >= 768);
     };
     check();
     window.addEventListener('resize', check);
