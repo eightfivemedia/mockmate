@@ -640,68 +640,65 @@ export function LandingPage() {
 
         {/* ── HERO ── */}
         {isTablet ? (
-          /* Tablet: two-column grid, vertically centered, constrained width */
           <section
-            className="flex items-center px-8"
-            style={{ minHeight: '100svh', paddingTop: '80px', paddingBottom: '48px', background: '#0a1123' }}
+            className="flex flex-col px-8 pb-10"
+            style={{ paddingTop: '88px', background: '#0a1123' }}
           >
-            <div className="w-full max-w-3xl mx-auto grid grid-cols-2 gap-10 items-center">
-              {/* Left: text + CTAs */}
+            <div className="w-full max-w-2xl mx-auto">
+              {/* Single column on portrait tablet — same as phone but wider */}
               <div className="flex flex-col items-start text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-white/60 font-medium mb-5">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-white/60 font-medium mb-4">
                   <Brain className="w-3 h-3 text-blue-400" /> INTERVIEW COACH
                 </div>
-                <h1 className="text-3xl font-bold text-white leading-tight tracking-tight mb-4">
+                <h1 className="text-4xl font-bold text-white leading-tight tracking-tight mb-3">
                   Practice smarter.<br />
                   Interview <Typewriter />
                 </h1>
-                <p className="text-sm text-white/60 mb-7 leading-relaxed max-w-xs">
+                <p className="text-base text-white/60 mb-6 leading-relaxed max-w-lg">
                   MockMate reads your resume, knows the role, and runs a realistic mock interview. You get scored feedback on every answer — not generic tips.
                 </p>
-                <div className="flex flex-col gap-3 w-full mb-5">
-                  <Link href="/auth/signup" className="w-full">
+                <div className="flex flex-row gap-3 mb-5 w-full max-w-sm">
+                  <Link href="/auth/signup" className="flex-1">
                     <Button className="w-full h-11 rounded-xl font-semibold text-sm bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0">
                       Start for free <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
                   </Link>
-                  <Link href="/auth/login" className="w-full">
-                    <Button variant="outline" className="w-full h-11 rounded-xl border-white/20 text-white bg-transparent hover:bg-white/5 text-sm">
+                  <Link href="/auth/login">
+                    <Button variant="outline" className="h-11 px-6 rounded-xl border-white/20 text-white bg-transparent hover:bg-white/5 text-sm">
                       Sign in
                     </Button>
                   </Link>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-white/40">
+                <div className="flex items-center gap-5 text-xs text-white/40 mb-8">
                   <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Free to start</span>
                   <span className="flex items-center gap-1"><Check className="w-3 h-3" /> No credit card</span>
                   <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Any role</span>
                 </div>
-              </div>
-              {/* Right: mockup card */}
-              <div className="flex justify-center">
+                {/* Mockup card — full width, wider on tablet */}
                 <div className="w-full rounded-2xl bg-slate-800/90 border border-white/10 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 bg-slate-900/60">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-slate-900/60">
                     <div className="flex items-center gap-2">
                       <Brain className="w-3.5 h-3.5 text-blue-400" />
                       <span className="text-xs font-semibold text-white/70">AI Interviewer</span>
                     </div>
                     <span className="text-xs text-white/30">Senior Frontend Engineer</span>
                   </div>
-                  <div className="p-3 space-y-3 bg-slate-800/50">
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Brain className="w-2.5 h-2.5 text-white" />
+                  <div className="p-4 space-y-3 bg-slate-800/50">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Brain className="w-3 h-3 text-white" />
                       </div>
-                      <div className="rounded-xl rounded-tl-none bg-slate-700/80 px-3 py-2">
+                      <div className="rounded-xl rounded-tl-none bg-slate-700/80 px-4 py-3 max-w-[85%]">
                         <p className="text-xs text-white/80 leading-relaxed">Walk me through how you handled cross-team adoption.</p>
                       </div>
                     </div>
                     <div className="flex justify-end">
-                      <div className="rounded-xl rounded-tr-none bg-blue-600/90 px-3 py-2 max-w-[85%]">
+                      <div className="rounded-xl rounded-tr-none bg-blue-600/90 px-4 py-3 max-w-[75%]">
                         <p className="text-xs text-white/90 leading-relaxed">We started with the two teams already feeling the pain...</p>
                       </div>
                     </div>
                   </div>
-                  <div className="px-3 py-2.5 border-t border-white/5 bg-slate-900/40 flex items-center justify-between">
+                  <div className="px-4 py-3 border-t border-white/5 bg-slate-900/40 flex items-center justify-between">
                     <span className="text-xs text-white/40">Answer score</span>
                     <span className="text-sm font-bold text-blue-400">84 / 100</span>
                   </div>
