@@ -77,7 +77,7 @@ function MockupCard() {
           ? { y: { duration: 4, repeat: Infinity, ease: 'easeInOut' }, opacity: { duration: 0.8, delay: 0.4 } }
           : { duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }
       }
-      className="relative z-[3] rotate-1 hidden md:block md:scale-75 lg:scale-100 origin-top-right"
+      className="relative z-[3] rotate-1 hidden md:block md:scale-[0.72] lg:scale-100 origin-top-right"
     >
       <div className="rounded-2xl bg-slate-800/90 border border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.5)] overflow-hidden">
         {/* Header bar */}
@@ -359,7 +359,7 @@ export function LandingPage() {
     // 0 — Hero
     <div key="hero" id="hero" className="min-h-screen relative flex items-center overflow-hidden bg-slate-900">
       <div className="absolute inset-0 z-[1] opacity-[0.02]" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: '72px 72px' }} />
-      <div className="relative z-[3] container max-w-6xl mx-auto px-4 md:px-6 pt-20 pb-8 md:pt-14 md:pb-10 lg:pt-20 lg:pb-20">
+      <div className="relative z-[3] container max-w-6xl mx-auto px-4 md:px-6 pt-20 pb-8 md:pt-12 md:pb-8 lg:pt-20 lg:pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-center">
           {/* Left column */}
           <div className="relative z-[3] min-w-0 overflow-hidden text-center md:text-left">
@@ -369,17 +369,17 @@ export function LandingPage() {
               <span className="text-xs text-white/50 tracking-widest font-medium uppercase">Interview Coach</span>
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-4xl md:text-3xl lg:text-5xl font-bold text-white leading-[1.05] tracking-tight mb-3 md:mb-4 lg:mb-6 max-w-full break-words">
+              className="text-4xl md:text-3xl lg:text-5xl font-bold text-white leading-[1.05] tracking-tight mb-3 md:mb-3 lg:mb-6 max-w-full break-words">
               Practice smarter.<br />
               <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">Interview </span>
               <Typewriter />
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="text-base md:text-sm lg:text-lg text-white/65 leading-relaxed mb-5 md:mb-5 lg:mb-10 max-w-[48ch] mx-auto lg:mx-0">
+              className="text-sm md:text-sm lg:text-lg text-white/65 leading-relaxed mb-4 md:mb-4 lg:mb-10 max-w-[48ch] mx-auto md:mx-0 lg:mx-0">
               MockMate reads your resume, knows the role, and runs a realistic mock interview. You get scored feedback on every answer — not generic tips.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col sm:flex-row items-center sm:items-start gap-3 mb-5 lg:mb-10">
+              className="flex flex-col sm:flex-row items-center md:items-start gap-3 mb-4 lg:mb-10">
               <Link href="/auth/signup">
                 <MagneticButton className="h-12 px-8 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl text-sm group shadow-[0_0_32px_rgba(59,130,246,0.5)]">
                   Start for free <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -436,8 +436,8 @@ export function LandingPage() {
     </div>,
 
     // 1 — Features
-    <div key="features" id="features" className="min-h-screen flex flex-col px-6 bg-white text-gray-900" style={{ paddingTop: '64px' }}>
-      <div className="container max-w-5xl mx-auto flex flex-col justify-center flex-1 pb-8 md:pb-16">
+    <div key="features" id="features" className="min-h-screen flex flex-col px-6 bg-white text-gray-900" style={{ paddingTop: '48px' }}>
+      <div className="container max-w-5xl mx-auto flex flex-col justify-start md:justify-center flex-1 pb-8">
         <p className="text-xs font-semibold text-blue-600 mb-4 tracking-widest uppercase">Features</p>
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-6">Built for candidates who take prep seriously</h2>
         <div className="grid grid-cols-1 gap-4 mt-4">
@@ -482,8 +482,8 @@ export function LandingPage() {
     </div>,
 
     // 2 — How It Works
-    <div key="how-it-works" id="how-it-works" className="min-h-screen flex flex-col px-6 bg-gray-50 text-gray-900" style={{ paddingTop: '64px' }}>
-      <div className="container max-w-5xl mx-auto flex flex-col justify-center flex-1 pb-8 md:pb-16">
+    <div key="how-it-works" id="how-it-works" className="min-h-screen flex flex-col px-6 bg-gray-50 text-gray-900" style={{ paddingTop: '48px' }}>
+      <div className="container max-w-5xl mx-auto flex flex-col justify-start md:justify-center flex-1 pb-8">
         <p className="text-xs font-semibold text-blue-600 mb-4 tracking-widest uppercase">How It Works</p>
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">From resume to feedback in minutes</h2>
         <div className="flex flex-col gap-5 mt-4">
@@ -507,8 +507,8 @@ export function LandingPage() {
     </div>,
 
     // 3 — Pricing
-    <div key="pricing" id="pricing" className="min-h-screen flex flex-col px-6 bg-white text-gray-900" style={{ paddingTop: '64px' }}>
-      <div className="container max-w-5xl mx-auto flex flex-col justify-center flex-1 pb-8 md:pb-16">
+    <div key="pricing" id="pricing" className="min-h-screen flex flex-col px-6 bg-white text-gray-900" style={{ paddingTop: '48px', paddingBottom: '80px' }}>
+      <div className="container max-w-5xl mx-auto flex flex-col justify-start md:justify-center flex-1 pb-8">
         <p className="text-xs font-semibold text-blue-600 mb-4 tracking-widest uppercase">Pricing</p>
         <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Simple pricing</h2>
 
@@ -586,8 +586,8 @@ export function LandingPage() {
     </div>,
 
     // 4 — FAQ
-    <div key="faq" id="faq" className="min-h-screen flex flex-col px-6 bg-gray-50 text-gray-900" style={{ paddingTop: '64px' }}>
-      <div className="container max-w-3xl mx-auto flex flex-col justify-center flex-1 pb-8 md:pb-16">
+    <div key="faq" id="faq" className="min-h-screen flex flex-col px-6 bg-gray-50 text-gray-900" style={{ paddingTop: '48px' }}>
+      <div className="container max-w-3xl mx-auto flex flex-col justify-start md:justify-center flex-1 pb-8">
         <p className="text-xs font-semibold text-blue-600 mb-4 tracking-widest uppercase">FAQ</p>
         <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 md:mb-12">Questions</h2>
         <Accordion type="single" collapsible className="space-y-3">
